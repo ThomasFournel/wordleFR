@@ -112,7 +112,23 @@ h2 {
     width: fit-content;
     display: flex;
     gap: 10px;
+
+    input {
+        width: 0px;
+        height: 0px;
+        font-size: 1px;
+        position: absolute;
+        left: -10px;
+        border: none;
+        background:none;
+    }
+
+    input:focus {
+        outline: none;
+    }
 }
+
+
 
 .tile {
     width: var(--tileSize);
@@ -130,12 +146,6 @@ h2 {
     text-align: center;
     border: 2px solid #999;
     outline: none;
-}
-
-/* inputs used in first row */
-input.tile:focus {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
-    border-color: #fff;
 }
 
 span {

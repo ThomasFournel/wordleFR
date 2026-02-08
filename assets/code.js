@@ -36,35 +36,12 @@ async function correctWordCheck(word) {
     return response;
 }
 
-function rowClick() {
-    //find lastChild with text
-    const childrenList = [...this.children];
-    const emptyList = childrenList.filter((elem) => {
-        return elem.value == "";
-    });
-    if (emptyList.length > 0) {
-        emptyList[0].focus();
-    } else {
-        childrenList[childrenList.length - 1].focus();
-    }
-}
-
-function checkWord(word, elem) {
+function checkWord(word, row) {
     //transforme les inputs en div
-    const row = elem.parentElement;
     row.querySelector(".loadingIcon").querySelector("span").remove();
     gameData.loading = false;
-    let html = row.innerHTML;
-    html = html.replaceAll("<input", "<div");
-    html = html.replaceAll(">", "></div>");
-    row.innerHTML = html;
 
-    const tiles = [...row.children];
-    tiles.pop();
-    tiles.forEach((tile, i) => {
-        tile.innerText = word[i];
-    });
-
+    const tiles = [...row.querySelectorAll(".tile")];
     word = toNormalForm(word.toLowerCase());
 
     //check du mot
@@ -72,8 +49,10 @@ function checkWord(word, elem) {
         tiles.forEach((tile) => {
             tile.className = "tile green";
         });
+        row.querySelector("input").remove();
         setTimeout(() => {
             alert("Victoire :D");
+            location.reload()
         }, 500);
     } else {
         let correctWord = gameData.word.split("");
@@ -146,6 +125,7 @@ function checkWord(word, elem) {
         });
 
         //nouvelle ligne
+        row.querySelector("input").remove();
         createRow();
     }
 }
@@ -154,95 +134,73 @@ function enterWord(elem) {
     console.log("Envoyé");
     gameData.loading = true;
 
-    const parent = elem.parentElement;
-    const childrenList = [...parent.children];
-    childrenList.pop();
-
-    let word = "";
-    childrenList.forEach((elem) => {
-        word += elem.value;
-    });
+    const row = elem.parentElement;
+    let word = elem.value;
 
     if (word.length == gameData.letterCount) {
-        parent.querySelector("span").className = "loadingIcon";
-        // check avec larousse.fr, si l'url de la page se termine par un chiffre c bon
+        row.querySelector("span").className = "loadingIcon";
+
         correctWordCheck(word).then((response) => {
             if (response.entries && response.entries.length > 0) {
                 //correct
-                checkWord(word, elem);
+                checkWord(word, row);
             } else {
                 //incorrect
-                parent.querySelector("span").className = "";
+                row.querySelector("span").className = "";
                 gameData.loading = false;
-                console.warn(response);
-                parent.className = "row error";
+                row.className = "row error";
                 setTimeout(() => {
-                    parent.className = "row";
+                    row.className = "row";
                 }, 400);
             }
         });
     } else {
         console.warn("pas bonne taille");
         gameData.loading = false;
-        parent.className = "row error";
+        row.className = "row error";
         setTimeout(() => {
-            parent.className = "row";
+            row.className = "row";
         }, 400);
     }
 }
 
-function tileKeyUp(userInput) {
-    //keycode des lettres = 49-90
-    if (49 <= userInput.keyCode && userInput.keyCode <= 90) {
-        const parent = this.parentElement;
-        const childrenList = [...parent.children];
-        childrenList.pop();
-        const emptyList = childrenList.filter((elem) => {
-            return elem.value == "";
-        });
-        if (emptyList.length > 0) {
-            emptyList[0].focus();
-        }
-    } else if (userInput.key == "Enter" && !gameData.loading) {
-        enterWord(this);
-    }
-}
-
-function suppr(elem) {
-    if (elem.value == "") {
-        const fullList = [...elem.parentElement.children].filter((elem) => {
-            return elem.value != "";
-        });
-        if (fullList.length > 0) {
-            fullList[fullList.length - 1].value = "";
-            fullList[fullList.length - 1].focus();
-        }
-    } else {
-        elem.value = "";
+function updateRowTiles(row) {
+    const tileList = [...row.querySelectorAll(".tile")];
+    const input = row.querySelector("input");
+    const entry = input.value.split("");
+    for (let i = 0; i < tileList.length; i++) {
+        tileList[i].innerText = i < entry.length ? entry[i] : "";
     }
 }
 
 function createRow() {
     const row = document.createElement("div");
     row.className = "row";
-    row.addEventListener("click", rowClick);
 
     boardElem.appendChild(row);
 
+    const input = document.createElement("input");
+    input.type = "text";
+    // input.style.display = "none";
+    input.inputMode = "text";
+    input.maxLength = `${gameData.letterCount}`;
+
+    input.addEventListener("keyup", (e) => {
+        if (e.key == "Enter") {
+            enterWord(input);
+        } else {
+            updateRowTiles(row);
+        }
+    });
+    row.appendChild(input);
+    row.addEventListener("click", () => {
+        console.log("click");
+        input.focus();
+    });
+
     for (x = 0; x < gameData.letterCount; x++) {
-        const tile = document.createElement("input");
+        const tile = document.createElement("div");
         tile.className = "tile";
-        tile.type = "text";
-        tile.inputMode = "text";
-        tile.maxLength = "1";
-
-        tile.addEventListener("keydown", function (userInput) {
-            if (userInput.key == "Backspace") {
-                suppr(this);
-            }
-        });
-        tile.addEventListener("keyup", tileKeyUp);
-
         row.appendChild(tile);
     }
 
@@ -287,18 +245,15 @@ keyBoardElem.querySelectorAll(".key").forEach((key) => {
         });
     } else if (key.id == "suppr") {
         key.addEventListener("click", () => {
-            const list = boardElem.querySelectorAll("input");
-            suppr(list[list.length - 1]);
+            const input = boardElem.querySelector("input");
+            input.value = input.value.slice(0, -1);
+            updateRowTiles(input.parentElement);
         });
     } else {
-        key.addEventListener("click", function () {
-            const row = boardElem.querySelector("input").parentElement;
-            const emptyList = [...row.children].filter((elem) => {
-                return elem.value == "";
-            });
-            if (emptyList.length > 0) {
-                emptyList[0].value = this.id;
-            }
+        key.addEventListener("click", () => {
+            const input = boardElem.querySelector("input");
+            input.value += key.id;
+            updateRowTiles(input.parentElement);
         });
     }
 });
