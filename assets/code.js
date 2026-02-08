@@ -30,10 +30,9 @@ async function dailyWord() {
     return response;
 }
 
-async function laRousseCheck(word) {
-    const response = await fetch(
-        `https://www.larousse.fr/dictionnaires/francais/${word}`
-    );
+async function correctWordCheck(word) {
+    const demand = await fetch(`https://freedictionaryapi.com/api/v1/entries/fr/${word}`);
+    const response = await demand.json();
     return response;
 }
 
@@ -87,6 +86,10 @@ function checkWord(word, elem) {
             if (correctWord[i] == letter) {
                 correctIndexes.push(i);
                 tiles[i].className = "tile green";
+                const keyElem = keyBoardElem.querySelector(`#${letter.toUpperCase()}`);
+                if (!keyElem.classList.contains("green")) {
+                    keyElem.classList = "key green";
+                }
             }
         });
 
@@ -109,11 +112,15 @@ function checkWord(word, elem) {
                         return test == letter;
                     })
                 ].className = "tile yellow";
+                const keyElem = keyBoardElem.querySelector(`#${letter.toUpperCase()}`);
+                if (!(keyElem.classList.contains("yellow") || keyElem.classList.contains("green"))) {
+                    keyElem.classList = "key yellow";
+                }
                 correctWord.splice(
                     correctWord.findIndex((test) => {
                         return test == letter;
                     }),
-                    1
+                    1,
                 );
             }
         });
@@ -159,8 +166,8 @@ function enterWord(elem) {
     if (word.length == gameData.letterCount) {
         parent.querySelector("span").className = "loadingIcon";
         // check avec larousse.fr, si l'url de la page se termine par un chiffre c bon
-        laRousseCheck(word).then((response) => {
-            if (!isNaN(response.url[response.url.length - 1])) {
+        correctWordCheck(word).then((response) => {
+            if (response.entries && response.entries.length > 0) {
                 //correct
                 checkWord(word, elem);
             } else {
@@ -211,7 +218,7 @@ function suppr(elem) {
             fullList[fullList.length - 1].focus();
         }
     } else {
-        elem.value = ""
+        elem.value = "";
     }
 }
 
@@ -229,9 +236,9 @@ function createRow() {
         tile.inputMode = "text";
         tile.maxLength = "1";
 
-        tile.addEventListener("keydown", function(userInput) {
+        tile.addEventListener("keydown", function (userInput) {
             if (userInput.key == "Backspace") {
-                suppr(this)
+                suppr(this);
             }
         });
         tile.addEventListener("keyup", tileKeyUp);
@@ -262,9 +269,7 @@ async function newGame(letterCount = 0, isDaily = false) {
 
     if (menuElem.querySelector("#showInfo").checked) {
         const help = answer.categorie.toLowerCase().replaceAll(" –", ",");
-        document.getElementById(
-            "help"
-        ).innerHTML = `Catégories du mot : <i>${help}</i>`;
+        document.getElementById("help").innerHTML = `Catégories du mot : <i>${help}</i>`;
     }
     keyBoardElem.style.display = "flex";
     boardElem.style.display = "flex";

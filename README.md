@@ -8,3 +8,6 @@ Un jeu où vous avez six tentatives pour deviner un mot aléatoires, recevant un
 
 **Utilise l'api de trouve-mot.fr pour générer un mot aléatoire**
 
+
+
+**Utilise l'api de freedictionaryapi.com pour vérifier si le mot existe**
